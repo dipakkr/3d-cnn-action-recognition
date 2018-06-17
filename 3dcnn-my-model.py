@@ -9,7 +9,7 @@ import numpy as np
 
 from keras.datasets import cifar10
 from keras.layers import (Activation, Conv3D, Dense, Dropout, Flatten,
-                          MaxPooling3D)
+                          MaxPooling3D, MaxPooling2D)
 
 from keras.layers.advanced_activations import LeakyReLU
 from keras.losses import categorical_crossentropy
@@ -22,27 +22,36 @@ from sklearn.model_selection import train_test_split
 import videoto3d
 from tqdm import tqdm
 
+from keras.callbacks import ModelCheckpoint
+from keras.models import Model
+from keras.layers import Input, Dense
+import keras
 
-# def plot_history(history, result_dir):
-#     plt.plot(history.history['acc'], marker='.')
-#     plt.plot(history.history['val_acc'], marker='.')
-#     plt.title('model accuracy')
-#     plt.xlabel('epoch')
-#     plt.ylabel('accuracy')
-#     plt.grid()
-#     plt.legend(['acc', 'val_acc'], loc='lower right')
-#     plt.savefig(os.path.join(result_dir, 'model_accuracy.png'))
-#     plt.close()
 
-#     plt.plot(history.history['loss'], marker='.')
-#     plt.plot(history.history['val_loss'], marker='.')
-#     plt.title('model loss')
-#     plt.xlabel('epoch')
-#     plt.ylabel('loss')
-#     plt.grid()
-#     plt.legend(['loss', 'val_loss'], loc='upper right')
-#     plt.savefig(os.path.join(result_dir, 'model_loss.png'))
-#     plt.close()
+##
+import tensorflow as tf
+from keras.backend.tensorflow_backend import set_session
+
+def plot_history(history, result_dir):
+    plt.plot(history.history['acc'], marker='.')
+    plt.plot(history.history['val_acc'], marker='.')
+    plt.title('model accuracy')
+    plt.xlabel('epoch')
+    plt.ylabel('accuracy')
+    plt.grid()
+    plt.legend(['acc', 'val_acc'], loc='lower right')
+    plt.savefig(os.path.join(result_dir, 'model_accuracy.png'))
+    plt.close()
+
+    plt.plot(history.history['loss'], marker='.')
+    plt.plot(history.history['val_loss'], marker='.')
+    plt.title('model loss')
+    plt.xlabel('epoch')
+    plt.ylabel('loss')
+    plt.grid()
+    plt.legend(['loss', 'val_loss'], loc='upper right')
+    plt.savefig(os.path.join(result_dir, 'model_loss.png'))
+    plt.close()
 
 
 def save_history(history, result_dir):
@@ -105,6 +114,7 @@ def loaddata(video_dir, vid3d, nclass, result_dir, color=False, skip=True):
         for i in range(len(labels)):
             if label == labels[i]:
                 labels[i] = num
+                
     if color:
         return np.array(X).transpose((0, 2, 3, 4, 1)), labels
     else:
@@ -147,40 +157,153 @@ def main():
     print('X_shape:{}\nY_shape:{}'.format(X.shape, Y.shape))
 
     # Define model
-    model = Sequential()
-   
-    model.add(Conv3D(32, kernel_size=(3, 3, 3), input_shape=(
-        X.shape[1:]), border_mode='same'))
-   
-    model.add(Activation('relu'))
-    model.add(Conv3D(32, kernel_size=(3, 3, 3), border_mode='same'))
-    model.add(Activation('softmax'))
-    model.add(MaxPooling3D(pool_size=(3, 3, 3), border_mode='same'))
-    model.add(Dropout(0.25))
-    model.add(Conv3D(64, kernel_size=(3, 3, 3), border_mode='same'))
-    model.add(Activation('relu'))
-    model.add(Conv3D(64, kernel_size=(3, 3, 3), border_mode='same'))
-    model.add(Activation('softmax'))
-    model.add(MaxPooling3D(pool_size=(3, 3, 3), border_mode='same'))
-    model.add(Dropout(0.25))
-    model.add(Flatten())
-    model.add(Dense(512, activation='sigmoid'))
-    model.add(Dropout(0.5))
-    model.add(Dense(nb_classes, activation='softmax'))
+    # model = Sequential()
+
+
+    # model.add(Conv3D(16, kernel_size=(3, 3, 3), input_shape=(
+    #     X.shape[1:]), padding='same'))
+    # model.add(LeakyReLU(alpha=.001)) 
+
+
+    # model.add(Conv3D(32, kernel_size=(3, 3, 3), input_shape=(
+    #     X.shape[1:]), padding='same'))
+    # model.add(LeakyReLU(alpha=.001)) 
+
+    ###########################
+
+    input_x = Input(shape = (32, 32, args.depth, 3))
+
+    initial_conv = Conv3D(16, kernel_size= (3, 3, 3), padding='same')(input_x)
+    initial_conv = LeakyReLU(alpha=.001)(initial_conv)
+
+    initial_conv = Conv3D(32, kernel_size= (3, 3, 3), padding='same')(initial_conv)
+    initial_conv = LeakyReLU(alpha=.001)(initial_conv)
+
+
+    ###########################
+    # PARALLEL 1
+
+    conv1 = Conv3D(16, kernel_size=(1, 1, 1),padding='same')(initial_conv)
+    conv1 = LeakyReLU(alpha=.001)(conv1)
+    conv1 = MaxPooling3D(pool_size=(2, 2, 2), padding='same')(conv1)
+
+
+    # conv1 = Conv3D(16, kernel_size=(3, 3, 3),padding='same')(conv1)
+    # conv1 = LeakyReLU(alpha=.001)(conv1)
+
+    conv1 = Conv3D(16, kernel_size=(1, 1, 1),padding='same')(conv1)
+    conv1 = LeakyReLU(alpha=.001)(conv1)
+
+    
+    conv1 = MaxPooling3D(pool_size=(2, 2, 2), padding='same')(conv1)
+
+    # conv1 = Conv3D(8, kernel_size=(1, 1, 1),padding='same')(conv1)
+
+    #check it    
+    # conv1 = LeakyReLU(alpha=.001)(conv1)
+
+    # conv1 = Conv3D(1, kernel_size=(1, 1, 1),padding='same')(conv1)
+
+    ##############################
+
+    ##############################
+
+    #Parallel 2
+
+    conv2 = Conv3D(8, kernel_size=(1, 1, 1),padding='same')(initial_conv)
+    conv2 = LeakyReLU(alpha=.001)(conv2)
+    conv2 = MaxPooling3D(pool_size=(2, 2, 2), padding='same')(conv2)
+
+
+    # conv2 = Conv3D(8, kernel_size=(3, 3, 3),padding='same')(conv2)
+    # conv2 = LeakyReLU(alpha=.001)(conv2)
+
+    conv2 = Conv3D(16, kernel_size=(1, 1, 1),padding='same')(conv2)
+    conv2 = LeakyReLU(alpha=.001)(conv2)
+    
+
+    conv2 = MaxPooling3D(pool_size=(2, 2, 2), padding='same')(conv2)
+
+    # conv2 = Conv3D(4, kernel_size=(1, 1, 1),padding='same')(conv2)
+
+    # #check it    
+    # conv2 = LeakyReLU(alpha=.001)(conv2)
+
+    # conv2 = Conv3D(1, kernel_size=(1, 1, 1),padding='same')(conv2)
+
+    ###################################
+
+
+    ##############################
+
+    #Parallel 3
+
+    conv3 = Conv3D(4, kernel_size=(1, 1, 1),padding='same')(initial_conv)
+    conv3 = LeakyReLU(alpha=.001)(conv3)
+    conv3 = MaxPooling3D(pool_size=(2, 2, 2), padding='same')(conv3)
+
+
+    # conv3 = Conv3D(4, kernel_size=(3, 3, 3),padding='same')(conv3)
+    # conv3 = LeakyReLU(alpha=.001)(conv3)
+
+    conv3 = Conv3D(16, kernel_size=(1, 1, 1),padding='same')(conv3)
+    conv3 = LeakyReLU(alpha=.001)(conv3)
+    
+
+    conv3 = MaxPooling3D(pool_size=(2, 2, 2), padding='same')(conv3)
+
+    # conv3 = Conv3D(4, kernel_size=(1, 1, 1),padding='same')(conv3)
+
+    # #check it    
+    # conv3 = LeakyReLU(alpha=.001)(conv3)
+
+    # conv3 = Conv3D(1, kernel_size=(1, 1, 1),padding='same')(conv3)
+
+    ###################################
+
+    added = keras.layers.Add()([conv1, conv2, conv3])
+
+    added = MaxPooling3D(pool_size=(2, 2, 2), padding='same')(added)
+
+    added = Flatten()(added)
+
+    dense_1 = Dense(256)(added)
+
+    dense_2 = Dense(2)(dense_1)
+
+    model = Model(input_x, dense_2)
 
     model.compile(loss=categorical_crossentropy,
-                  optimizer=Adam(), metrics=['accuracy'])
-    model.summary()
+                  optimizer=Adam(), metrics=['accuracy']) 
 
+    model.summary()
     # plot_model(model, show_shapes=True,
     #            to_file=os.path.join(args.output, 'model.png'))
 
     X_train, X_test, Y_train, Y_test = train_test_split(
         X, Y, test_size=0.2, random_state=43)
+    print(X_train.shape)
+
+    ####################
+
+    # 1
+    filepath="d_3dcnnmodel-{epoch:02d}-{val_acc:.2f}.hd5"
+    
+    checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
+    
+    callbacks_list = [checkpoint]
+
+    # 2 
+
+    config = tf.ConfigProto()
+    config.gpu_options.per_process_gpu_memory_fraction = 0.3
+    set_session(tf.Session(config=config))
+
+    ###############
 
     # Train model
     history = model.fit(X_train, Y_train, validation_data=(X_test, Y_test), batch_size=args.batch,
-                        epochs=args.epoch, verbose=1, shuffle=True)
+                        epochs=args.epoch, verbose=1, shuffle=True, callbacks=callbacks_list)
     
     model.evaluate(X_test, Y_test, verbose=0)
     
@@ -204,3 +327,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+
