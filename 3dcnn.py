@@ -156,7 +156,15 @@ def main():
    
     model.add(Conv3D(32, kernel_size=(3, 3, 3), input_shape=(
         X.shape[1:]), border_mode='same'))
-   
+
+    # model.add(Activation('relu'))
+    # model.add(Conv3D(32, kernel_size=(3, 3, 3), border_mode='same'))
+    # model.add(Activation('softmax'))
+    # model.add(MaxPooling3D(pool_size=(3, 3, 3), border_mode='same'))
+    # model.add(Dropout(0.25))
+
+
+
     model.add(Activation('relu'))
     model.add(Conv3D(32, kernel_size=(3, 3, 3), border_mode='same'))
     model.add(Activation('softmax'))
