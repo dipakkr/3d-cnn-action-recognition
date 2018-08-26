@@ -1,0 +1,28 @@
+
+Run the Following scripts : 
+=============================================
+
+sudo ./convert_video_to_images.sh ../ucf-mini 25
+
+=============================================
+
+25          -----> Frame per second
+../ucf-mini ---> path to video file of UCF101
+
+
+============================================
+
+Possible Error : 
+
+1) If says "convert_video_to_images.sh" Command not Found
+
+===> Run 
+
+sudo chmod +x convert_video_to_images.sh
+
+
+
+
+2 ) ffmpeg should be installed.
+
+

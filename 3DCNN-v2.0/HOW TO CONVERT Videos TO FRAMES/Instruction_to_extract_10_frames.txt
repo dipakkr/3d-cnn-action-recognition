@@ -1,0 +1,19 @@
+
+===========================
+
+Run frame_script.py
+
+=============================
+
+
+base_path = "/home/deepak/PycharmProjects/3DCNN/3DCNN-final/ds/"
+new_path = "/home/deepak/Desktop/UCF"
+
+
+Here,
+
+base_path => directory where the frames are stored after converting from vides.
+
+new_path => Directroy where the UCF dataset with 10 frame each should be stored. [ Make a folder UCF on  desktop, and give that path ] 
+
+
